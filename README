@@ -1,0 +1,12 @@
+a minecraft server admin frontend, to be accessed via HTTP and written using nodeJS.
+
+It cant do much at the moment, and probably never will.
+Right now, it's kind of a ssh replacement for people who
+a) dont want their server to die if/when the tty dies and
+b) dont like screen
+
+setup:
+
+* edit config.js
+* start main.js
+* connect using <browser of your choice>
