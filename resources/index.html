@@ -1,0 +1,77 @@
+<html>
+<head>
+	<title>MineNode - extremely primitive Minecraft Server frontend</title>
+	<!-- im sry master resig. im a lazy ass, you see (TODO) -->
+	<script src="http://code.jquery.com/jquery-1.4.4.min.js"></script>
+	<style>
+		pre {
+			overflow: scroll;
+		}
+
+		.logcontainer {
+			max-height: 200px;
+			max-width: 80%;
+			margin: 1em;
+			font-family: monospace;
+			border: 2px solid #ddd;
+		}
+
+	</style>
+	<script>
+		var adminkey = %%ADMINKEY%%;
+	</script>
+</head>
+<body>
+	<h1>Server status</h1>
+	<div></div>
+	<h1>Server stdout</h1>
+	<div ><pre id="server_stdout" class="logcontainer"></pre></div>
+	<h1>Server stderr</h1>
+	<div ><pre id="server_stderr" class="logcontainer"></pre></div>
+	<div>
+		<label for="server_stdin">input:</label>
+		<input type="text" size="40" id="server_stdin" />
+	</div>
+
+	<script>
+
+
+	var stdin = '',
+		stderr = '',
+		stdout = '';
+
+	$('#server_stdin').keyup(function (e) {
+		debugger;
+		if (e.keyCode === 13) {
+			$.get('/' + adminkey + '?type=stdin&message=' + this.value);
+			this.value = '';
+		}
+	});
+
+
+
+	$(document).ready(function () {
+
+		var pollStdout = function () {
+				$.get('/' + adminkey + '?type=stdout', function (data) {
+					stdout += data;
+					$('#server_stdout').text(stdout).scrollTop($('#server_stdout')[0].scrollHeight);
+					setTimeout(pollStdout, 1000);
+				}, 'html');
+			},
+			pollStderr = function () {
+				$.get('/' + adminkey + '?type=stderr', function (data) {
+					stderr += data;
+					$('#server_stderr').text(stderr).scrollTop($('#server_stderr')[0].scrollHeight);
+
+					setTimeout(pollStderr, 1000);
+				}, 'html');
+			};
+
+
+		pollStderr();
+		pollStdout();
+	});
+	</script>
+</body>
+</html>
