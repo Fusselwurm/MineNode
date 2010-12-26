@@ -3,18 +3,27 @@
 
 var sys = require('sys'),
 	spawn = require('child_process').spawn,
-	config = require('./config.js'),
+	fs = require('fs'),
 	daemon,
+	serverjar,
+	serverpath,
 	stdout = '',
 	stderr = '';
 
+exports.setServerJar = function (filename) {
+	serverjar = filename;
+};
+
+exports.setServerPath = function (dirname) {
+	serverpath = dirname;
+};
 
 exports.start = function () {
 	if (daemon) {
 		return false;
 	}
 
-	daemon = spawn('java', ['-Xmx1024M', '-Xms1024M', '-jar', config.minecraft_server_jar, 'nogui']);
+	daemon = spawn('java', ['-Xmx1024M', '-Xms1024M', '-jar', serverjar, 'nogui']);
 
 	daemon.on('exit', function (code) {
 		console.log('DAEMON exit: ' + code);
@@ -44,6 +53,26 @@ exports.stop = function () {
 
 exports.getDaemon = function () {
 	return daemon;
+};
+
+exports.getServerProperties = function () {
+	var file = fs.readFileSync(serverpath + '/server.properties'),
+		result = {};
+
+	if (!file) {
+		throw 'couldnt find propiertes (correct server path "' + serverpath + '"?)';
+	}
+
+	file.toString().split('\n').forEach(function (l) {
+		if (l.indexOf('#') === 0) {
+			return;
+		}
+
+		l = l.split('=');
+		var tmp = l.shift();
+		result[tmp] = l.join('=');
+	});
+	return result;
 };
 
 exports.isRunning = function () {

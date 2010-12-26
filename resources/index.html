@@ -24,9 +24,21 @@
 			background-color: #f88;
 		}
 
+		#server_properties td {
+			border: 1px dotted #ccc;
+			padding: 0.3em;
+		}
+
+		#server_properties table {
+			border-spacing: 0;
+			border-collapse: collapse;
+		}
+
+
 	</style>
 	<script>
-		var adminkey = %%ADMINKEY%%;
+		/*global $*/
+		var adminkey = '%%ADMINKEY%%';
 	</script>
 </head>
 <body>
@@ -34,6 +46,8 @@
 	<div id="server_status">---</div>
 	<button id="server_switch_on">start</button>
 	<button id="server_switch_off">stop</button>
+	<h1>Server properties</h1>
+	<div id="server_properties"></div>
 	<h1>Server stdout</h1>
 	<div ><pre id="server_stdout" class="logcontainer"></pre></div>
 	<h1>Server stderr</h1>
@@ -49,7 +63,6 @@
 		stdout = '';
 
 	$('#server_stdin').keyup(function (e) {
-		debugger;
 		if (e.keyCode === 13) {
 			$.get('/' + adminkey + '?type=stdin&message=' + this.value);
 			this.value = '';
@@ -85,11 +98,25 @@
 
 					setTimeout(pollServerStatus, 3000);
 				}, 'json');
+			},
+			getServerProperties = function () {
+				$.get('/' + adminkey, {type: 'properties'}, function (data) {
+					var n, s = '<table>';
+					for (n in data) {
+						if (data.hasOwnProperty(n)) {
+							s += '<tr><td>' + n + '<\/td><td>' + data[n] + '<\/td><\/tr>';
+						}
+					}
+					s += '<\/table>';
+					$('#server_properties').html(s);
+
+				}, 'json');
 			};
 
 		pollStderr();
 		pollStdout();
 		pollServerStatus();
+		getServerProperties();
 
 		$('#server_switch_on').click(function () {
 			$.get('/' + adminkey, {type: 'start'});

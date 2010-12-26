@@ -1,4 +1,4 @@
-/*global require, exports, process, console*/
+/*global require, exports, process, console, __dirname*/
 
 var url = require('url'),
 	fs = require('fs'),
@@ -57,6 +57,12 @@ var url = require('url'),
 				'Content-Type': 'text/plain'
 			});
 			response.write(JSON.stringify(daemon.isRunning()));
+		},
+		properties: function (response, msg) {
+			response.writeHead(200, {
+				'Content-Type': 'text/plain'
+			});
+			response.write(JSON.stringify(daemon.getServerProperties()));
 		}
 	};
 
@@ -111,7 +117,7 @@ exports.handler = function that(request, response) {
 			'Content-Type': 'text/html'
 		});
 
-		response.write(fs.readFileSync(__dirname + '/resources/index.html').toString().replace('%%ADMINKEY%%', JSON.stringify(adminkey)));
+		response.write(fs.readFileSync(__dirname + '/resources/index.html').toString().replace('%%ADMINKEY%%', adminkey));
 		response.end();
 	}
 };

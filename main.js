@@ -1,19 +1,40 @@
-/*global require, exports, process, console*/
+/*global require, exports, process, console, __dirname*/
 var sys = require('sys'),
 	http = require('http'),
 	config = require(__dirname + '/config.js'),
 	frontend = require(__dirname + '/http.js'),
 	httpServer,
-	daemon = require(__dirname + '/daemon.js');
+	daemon = require(__dirname + '/daemon.js'),
+	stdin = process.openStdin();
 
-var stdin = process.openStdin();
+(function () {
+	daemon.setServerJar(config.minecraft_server_jar);
+
+	var path = config.minecraft_server_path;
+	if (!path) {
+		path = config.minecraft_server_jar.split('/');
+		path.pop();
+		path = path.join('/');
+	}
+
+	// chdir. thats important - else the server wont find its files again
+	process.chdir(path);
+	daemon.setServerPath(path);
+}());
+
+frontend.setDaemon(daemon);
+frontend.setAdminkey(config.adminkey);
+
+
+httpServer = http.createServer(frontend.handler);
+httpServer.listen(config.httpPort);
+
+console.log('http server should be running...');
 
 stdin.on('data', function (chunk) {
-// 	console.log('GOT STDIN: ' + chunk);
+	// 	console.log('GOT STDIN: ' + chunk);
 	var input = chunk.toString().match(/^daemon (.*)/),
 		 cmd = input ? input[1].trim() : false;
-
-	console.log(JSON.stringify(input));
 
 	if (cmd) {
 		if (typeof daemon[cmd] === 'function') {
@@ -44,10 +65,6 @@ stdin.on('data', function (chunk) {
 	}
 });
 
-frontend.setDaemon(daemon);
-frontend.setAdminkey(config.adminkey);
+console.log('listening to stdin...');
 
-httpServer = http.createServer(frontend.handler);
-httpServer.listen(config.httpPort);
-
-console.log('http server should be running...');
+console.log('world name is: ' + daemon.getServerProperties()['level-name']);
