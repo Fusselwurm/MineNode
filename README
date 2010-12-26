@@ -1,12 +1,19 @@
 a minecraft server admin frontend, to be accessed via HTTP and written using nodeJS.
 
 It cant do much at the moment, and probably never will.
-Right now, it's kind of a ssh replacement for people who
-a) dont want their server to die if/when the tty dies and
-b) dont like screen
+Right now, it lets you:
+
+* start and stop the minecraft server
+* view server output
+* send arbitrary commands to the server console
+
+prerequisites:
+
+* nodeJS (>=0.2.0)
 
 setup:
 
-* edit config.js
+* checkout/clone to local directory
+* create config.js (see config.js.example)
 * start main.js
-* connect using <browser of your choice>
+* connect using <browser of your choice> to http://[your host]:[config.httpPort]/[config.adminkey]
