@@ -71,7 +71,11 @@ stdin.on('data', function (chunk) {
 			}
 			break;
 		case 'help':
-			console.log('available commands: \n\tstart - start minecraft\n\texit - kill this console (along with the minecraft server)\n\tdaemon XXX - send command to running minecraft server');
+			console.log('available commands:\n' +
+				'\tstart - start minecraft\n' +
+				'\tstop - stop minecraft\n' +
+				'\texit - kill this console (along with the minecraft server)\n' +
+				'\tdaemon COMMAND - send COMMAND to running minecraft server');
 			break;
 		default:
 			console.log('I don\'t understand you. type "help" for help');
