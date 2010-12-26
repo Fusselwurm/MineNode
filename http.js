@@ -111,7 +111,7 @@ exports.handler = function that(request, response) {
 			'Content-Type': 'text/html'
 		});
 
-		response.write(fs.readFileSync('resources/index.html').toString().replace('%%ADMINKEY%%', JSON.stringify(adminkey)));
+		response.write(fs.readFileSync(__dirname + '/resources/index.html').toString().replace('%%ADMINKEY%%', JSON.stringify(adminkey)));
 		response.end();
 	}
 };
