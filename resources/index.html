@@ -16,6 +16,14 @@
 			border: 2px solid #ddd;
 		}
 
+		.enabled {
+			background-color: #8f8;
+		}
+
+		.disabled {
+			background-color: #f88;
+		}
+
 	</style>
 	<script>
 		var adminkey = %%ADMINKEY%%;
@@ -23,7 +31,9 @@
 </head>
 <body>
 	<h1>Server status</h1>
-	<div></div>
+	<div id="server_status">---</div>
+	<button id="server_switch_on">start</button>
+	<button id="server_switch_off">stop</button>
 	<h1>Server stdout</h1>
 	<div ><pre id="server_stdout" class="logcontainer"></pre></div>
 	<h1>Server stderr</h1>
@@ -32,9 +42,7 @@
 		<label for="server_stdin">input:</label>
 		<input type="text" size="40" id="server_stdin" />
 	</div>
-
 	<script>
-
 
 	var stdin = '',
 		stderr = '',
@@ -66,11 +74,30 @@
 
 					setTimeout(pollStderr, 1000);
 				}, 'html');
-			};
+			},
+			pollServerStatus = function () {
+				$.get('/' + adminkey, {type: 'status'}, function (data) {
+					if (data) {
+						$('#server_status').addClass('enabled').removeClass('disabled').text('running');
+					} else {
+						$('#server_status').removeClass('enabled').addClass('disabled').text('stopped');
+					}
 
+					setTimeout(pollServerStatus, 3000);
+				}, 'json');
+			};
 
 		pollStderr();
 		pollStdout();
+		pollServerStatus();
+
+		$('#server_switch_on').click(function () {
+			$.get('/' + adminkey, {type: 'start'});
+		});
+
+		$('#server_switch_off').click(function () {
+			$.get('/' + adminkey, {type: 'stop'});
+		});
 	});
 	</script>
 </body>

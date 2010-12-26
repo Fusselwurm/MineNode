@@ -1,99 +1,49 @@
-/*global require, console, process*/
+/*global require, exports, process, console*/
 var sys = require('sys'),
-	spawn = require('child_process').spawn,
 	http = require('http'),
-	url = require('url'),
 	config = require('./config.js'),
-	fs = require('fs'),
-	daemon,
+	frontend = require('./http.js'),
 	httpServer,
-	daemon_stdout = '',
-	daemon_stderr = '';
-
-daemon = spawn('java', ['-Xmx1024M', '-Xms1024M', '-jar', config.minecraft_server_jar, 'nogui']);
-
-
-
-daemon.stdout.on('data', function (data) {
-	daemon_stdout += data.toString();
-	console.log('DAEMON stdout: ' + data);
-});
-
-daemon.stderr.on('data', function (data) {
-	daemon_stderr += data.toString();
-	console.log('DAEMON stderr: ' + data);
-});
-
-daemon.on('exit', function (code) {
-	console.log('DAEMON exit: ' + code);
-});
+	daemon = require('./daemon.js');
 
 var stdin = process.openStdin();
 
 stdin.on('data', function (chunk) {
-	console.log('GOT STDIN: ' + chunk);
-	daemon.stdin.write(chunk);
-});
+// 	console.log('GOT STDIN: ' + chunk);
+	var input = chunk.toString().match(/^daemon (.*)/),
+		 cmd = input ? input[1].trim() : false;
 
+	console.log(JSON.stringify(input));
 
-httpServer = http.createServer(function (request, response) {
-
-	var urlbits = url.parse(request.url, true),
-		msg;
-
-		if ('/' + config.adminkey !== urlbits.pathname) {
-			response.writeHead(400, {
-				'Content-Type': 'text/html'
-			});
-			response.end('nö (missing or invalid key)');
+	if (cmd) {
+		if (typeof daemon[cmd] === 'function') {
+			daemon[cmd]();
+		} else {
+			if (daemon.isRunning()) {
+				daemon.writeStdin(cmd + '\n');
+			} else {
+				console.log('server not running, wont write ' + chunk);
+			}
 		}
-
-
-	if (!urlbits.query) {
-		response.writeHead(200, {
-			'Content-Type': 'text/html'
-		});
-
-
-		response.write(fs.readFileSync('resources/index.html').toString().replace('%%ADMINKEY%%', JSON.stringify(config.adminkey)));
-		response.end();
-		return;
+	} else {
+		chunk = chunk.toString().trim();
+		switch (chunk) {
+		case 'exit':
+			process.exit(); // FIXME
+			break;
+		case 'help':
+			console.log('available commands: \nstart - start minecraft\nexit - kill this console (along with the minecraft server)\ndaemon XXX - send command to running minecraft server');
+			break;
+		default:
+			console.log('I don\'t understand you. type "help" for help');
+		}
 	}
-
-	msg = urlbits.query.message;
-	switch (urlbits.query.type) {
-	case 'stdin':
-
-		response.writeHead(200, {
-			'Content-Type': 'text/plain'
-		});
-
-		response.end('ok');
-
-		daemon.stdin.write(msg + '\n');
-		break;
-	case 'stdout':
-		response.writeHead(200, {
-			'Content-Type': 'text/plain'
-		});
-		response.end(daemon_stdout);
-		daemon_stdout = '';
-		break;
-	case 'stderr':
-		response.writeHead(200, {
-			'Content-Type': 'text/plain'
-		});
-		response.end(daemon_stderr);
-		daemon_stderr = '';
-		break;
-	default:
-		response.writeHead(400, {
-			'Content-Type': 'text/plain'
-		});
-		response.end('wtf?');
-	}
-
 });
+
+frontend.setDaemon(daemon);
+frontend.setAdminkey(config.adminkey);
+
+httpServer = http.createServer(frontend.handler);
 httpServer.listen(config.httpPort);
 
 console.log('http server should be running...');
