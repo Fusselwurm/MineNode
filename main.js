@@ -56,8 +56,22 @@ stdin.on('data', function (chunk) {
 			}
 			process.exit('exiting');
 			break;
+		case 'start':
+			if (!daemon.isRunning()) {
+				daemon.start();
+			} else {
+				console.log('daemon already running');
+			}
+			break;
+		case 'stop':
+			if (daemon.isRunning()) {
+				daemon.stop();
+			} else {
+				console.log('daemon already stopped');
+			}
+			break;
 		case 'help':
-			console.log('available commands: \nstart - start minecraft\nexit - kill this console (along with the minecraft server)\ndaemon XXX - send command to running minecraft server');
+			console.log('available commands: \n\tstart - start minecraft\n\texit - kill this console (along with the minecraft server)\n\tdaemon XXX - send command to running minecraft server');
 			break;
 		default:
 			console.log('I don\'t understand you. type "help" for help');

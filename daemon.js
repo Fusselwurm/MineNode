@@ -31,13 +31,15 @@ exports.start = function () {
 	});
 
 	daemon.stdout.on('data', function (data) {
-		stdout += data.toString();
-		console.log('DAEMON stdout: ' + data);
+		data = data.toString();
+		stdout += data;
+		console.log('DAEMON stdout: ' + data.trim());
 	});
 
 	daemon.stderr.on('data', function (data) {
-		stderr += data.toString();
-		console.log('DAEMON stderr: ' + data);
+		data = data.toString();
+		stderr += data;
+		console.log('DAEMON stderr: ' + data.trim());
 	});
 
 	return true;
