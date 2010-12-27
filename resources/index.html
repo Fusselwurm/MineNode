@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>MineNode - extremely primitive Minecraft Server frontend</title>
+	<title>---</title>
 	<!-- im sry master resig. im a lazy ass, you see (TODO) -->
 	<script src="http://code.jquery.com/jquery-1.4.4.min.js"></script>
 	<style>
@@ -9,7 +9,7 @@
 		}
 
 		.logcontainer {
-			max-height: 200px;
+			max-height: 170px;
 			max-width: 80%;
 			margin: 1em;
 			font-family: monospace;
@@ -24,34 +24,66 @@
 			background-color: #f88;
 		}
 
+		#container_server_status {
+			border: 3px dashed #fff;
+		}
+
+		#container_server_stderr, #container_server_stdout {
+			border: 3px dashed #fff;
+			background-color: #fd9;
+		}
+
+		#container_server_properties {
+			width: 300px;
+			background-color: #c0c0ff;
+			float: right;
+			border: 3px dashed #fff;
+		}
+
 		#server_properties td {
-			border: 1px dotted #ccc;
-			padding: 0.3em;
+			border: 2px dashed #fff;
+			padding: 0.2em;
 		}
 
 		#server_properties table {
+			margin: 1em;
 			border-spacing: 0;
 			border-collapse: collapse;
 		}
 
+		button {
+			float: right;
+		}
 
 	</style>
 	<script>
 		/*global $*/
 		var adminkey = '%%ADMINKEY%%';
+		var title = 'MineNode - Minecraft Server Frontend for "%s"';
 	</script>
 </head>
 <body>
-	<h1>Server status</h1>
-	<div id="server_status">---</div>
-	<button id="server_switch_on">start</button>
-	<button id="server_switch_off">stop</button>
-	<h1>Server properties</h1>
-	<div id="server_properties"></div>
-	<h1>Server stdout</h1>
-	<div ><pre id="server_stdout" class="logcontainer"></pre></div>
-	<h1>Server stderr</h1>
-	<div ><pre id="server_stderr" class="logcontainer"></pre></div>
+	<div id="container_server_properties">
+		<h1>Properties</h1>
+		<div id="server_properties"></div>
+	</div>
+	<div id="container_server_status">
+		<button id="server_switch_on">start</button>
+		<button id="server_switch_off">stop</button>
+		<h1>Status</h1>
+		<div id="server_status">---</div>
+
+	</div>
+
+	<div id="container_server_stdout">
+		<h1>Stdout</h1>
+		<div ><pre id="server_stdout" class="logcontainer"></pre></div>
+	</div>
+
+	<div id="container_server_stderr">
+	<h1>Stderr</h1>
+	<div><pre id="server_stderr" class="logcontainer"></pre></div>
+	</div>
 	<div>
 		<label for="server_stdin">input:</label>
 		<input type="text" size="40" id="server_stdin" />
@@ -91,9 +123,11 @@
 			pollServerStatus = function () {
 				$.get('/' + adminkey, {type: 'status'}, function (data) {
 					if (data) {
-						$('#server_status').addClass('enabled').removeClass('disabled').text('running');
+						$('#container_server_status').addClass('enabled').removeClass('disabled');
+						$('#server_status').text('running');
 					} else {
-						$('#server_status').removeClass('enabled').addClass('disabled').text('stopped');
+						$('#container_server_status').removeClass('enabled').addClass('disabled');
+						$('#server_status').text('stopped');
 					}
 
 					setTimeout(pollServerStatus, 3000);
@@ -103,12 +137,16 @@
 				$.get('/' + adminkey, {type: 'properties'}, function (data) {
 					var n, s = '<table>';
 					for (n in data) {
-						if (data.hasOwnProperty(n)) {
-							s += '<tr><td>' + n + '<\/td><td>' + data[n] + '<\/td><\/tr>';
+						if (n && data.hasOwnProperty(n)) {
+							s += '<tr><td>' + n + '<\/td><td>' + data[n] + '<\/td><\/tr>\n';
 						}
 					}
 					s += '<\/table>';
 					$('#server_properties').html(s);
+
+					if (data['level-name']) {
+						document.title = title.replace('%s', data['level-name']);
+					}
 
 				}, 'json');
 			};
