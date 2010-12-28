@@ -1,11 +1,14 @@
 <html>
 <head>
 	<title>---</title>
-	<!-- im sry master resig. im a lazy ass, you see (TODO) -->
-	<script src="http://code.jquery.com/jquery-1.4.4.min.js"></script>
+	<script src="/jquery.js"></script>
 	<style>
 		pre {
 			overflow: scroll;
+		}
+
+		h1 {
+			font-size: 1.3em;
 		}
 
 		.logcontainer {
@@ -33,6 +36,11 @@
 			background-color: #fd9;
 		}
 
+		#container_server_players, #container_server_webclients {
+			border: 3px dashed #fff;
+			background-color: #ff0;
+		}
+
 		#container_server_properties {
 			width: 300px;
 			background-color: #c0c0ff;
@@ -58,8 +66,11 @@
 	</style>
 	<script>
 		/*global $*/
-		var adminkey = '%%ADMINKEY%%';
-		var title = 'MineNode - Minecraft Server Frontend for "%s"';
+		var
+			adminkey = '%%ADMINKEY%%',
+			title = 'MineNode - Minecraft Server Frontend for "%s"',
+			clientid = '%%CLIENTID%%';
+
 	</script>
 </head>
 <body>
@@ -70,15 +81,23 @@
 	<div id="container_server_status">
 		<button id="server_switch_on">start</button>
 		<button id="server_switch_off">stop</button>
-		<h1>Status</h1>
-		<div id="server_status">---</div>
-
+		<h1>Status: <span id="server_status">---</span></h1>
 	</div>
+
+	<div id="container_server_players">
+		<h1>Players: <span id="server_players"></span></h1>
+	</div>
+
+	<div id="container_server_webclients">
+		<h1>Webclients: <span id="server_webclients"></span></h1>
+	</div>
+
 
 	<div id="container_server_stdout">
 		<h1>Stdout</h1>
 		<div ><pre id="server_stdout" class="logcontainer"></pre></div>
 	</div>
+
 
 	<div id="container_server_stderr">
 	<h1>Stderr</h1>
@@ -96,72 +115,95 @@
 
 	$('#server_stdin').keyup(function (e) {
 		if (e.keyCode === 13) {
-			$.get('/' + adminkey + '?type=stdin&message=' + this.value);
+			$.get('/' + adminkey, {
+				type : 'stdin',
+				message: this.value,
+				clientid: clientid
+			});
 			this.value = '';
 		}
 	});
 
-
-
 	$(document).ready(function () {
 
-		var pollStdout = function () {
-				$.get('/' + adminkey + '?type=stdout', function (data) {
-					stdout += data;
+		var setProperties, poll;
+
+
+		setProperties = function (data) {
+			var n, s = '<table>';
+			for (n in data) {
+				if (n && data.hasOwnProperty(n)) {
+					s += '<tr><td>' + n + '<\/td><td>' + data[n] + '<\/td><\/tr>\n';
+				}
+			}
+			s += '<\/table>';
+			$('#server_properties').html(s);
+
+			if (data['level-name']) {
+				document.title = title.replace('%s', data['level-name']);
+			}
+
+		};
+
+		poll = function () {
+			$.get('/' + adminkey + '?type=update&clientid=' + clientid, function (data) {
+
+				if (typeof data == 'string') {
+					data = JSON.parse(data);
+				}
+
+				if (!data) {
+					throw 'aaaaaaaaaargs';
+				}
+
+				if (data.stdout) {
+					stdout += data.stdout;
 					$('#server_stdout').text(stdout).scrollTop($('#server_stdout')[0].scrollHeight);
-					setTimeout(pollStdout, 1000);
-				}, 'html');
-			},
-			pollStderr = function () {
-				$.get('/' + adminkey + '?type=stderr', function (data) {
-					stderr += data;
+				}
+				if (data.stderr) {
+					stderr += data.stderr;
 					$('#server_stderr').text(stderr).scrollTop($('#server_stderr')[0].scrollHeight);
+				}
 
-					setTimeout(pollStderr, 1000);
-				}, 'html');
-			},
-			pollServerStatus = function () {
-				$.get('/' + adminkey, {type: 'status'}, function (data) {
-					if (data) {
-						$('#container_server_status').addClass('enabled').removeClass('disabled');
-						$('#server_status').text('running');
-					} else {
-						$('#container_server_status').removeClass('enabled').addClass('disabled');
-						$('#server_status').text('stopped');
-					}
+				if (data.status) {
+					$('#container_server_status').addClass('enabled').removeClass('disabled');
+					$('#server_status').text('running');
+				} else {
+					$('#container_server_status').removeClass('enabled').addClass('disabled');
+					$('#server_status').text('stopped');
+				}
 
-					setTimeout(pollServerStatus, 3000);
-				}, 'json');
-			},
-			getServerProperties = function () {
-				$.get('/' + adminkey, {type: 'properties'}, function (data) {
-					var n, s = '<table>';
-					for (n in data) {
-						if (n && data.hasOwnProperty(n)) {
-							s += '<tr><td>' + n + '<\/td><td>' + data[n] + '<\/td><\/tr>\n';
-						}
-					}
-					s += '<\/table>';
-					$('#server_properties').html(s);
+				if (data.clients) {
+					$('#server_webclients').html(data.clients.join(', ').replace(clientid, '<em>' + clientid + '<\/em>'));
+				}
 
-					if (data['level-name']) {
-						document.title = title.replace('%s', data['level-name']);
-					}
+				if (data.players) {
+					$('#server_players').text(data.players.join(', '));
+				}
 
-				}, 'json');
-			};
+				if (data.properties) {
+					setProperties(data.properties);
+				}
 
-		pollStderr();
-		pollStdout();
-		pollServerStatus();
-		getServerProperties();
+				setTimeout(poll, 2000);
+			}, 'json');
+		};
+
+
+		poll();
 
 		$('#server_switch_on').click(function () {
-			$.get('/' + adminkey, {type: 'start'});
+			$.get('/' + adminkey, {
+				type: 'start',
+				clientid: clientid
+			});
 		});
 
 		$('#server_switch_off').click(function () {
-			$.get('/' + adminkey, {type: 'stop'});
+			$.get('/' + adminkey, {
+				type: 'stop',
+				clientid: clientid
+			});
 		});
 	});
 	</script>

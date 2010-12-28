@@ -22,6 +22,14 @@ var sys = require('sys'),
 	daemon.setServerPath(path);
 }());
 
+daemon.on('stdout', function (data) {
+	console.log('DAEMON stdout: ' + data.toString().trim());
+});
+
+daemon.on('stderr', function (data) {
+	console.log('DAEMON stderr: ' + data.toString().trim());
+});
+
 frontend.setDaemon(daemon);
 frontend.setAdminkey(config.adminkey);
 

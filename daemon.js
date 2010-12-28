@@ -7,8 +7,49 @@ var sys = require('sys'),
 	daemon,
 	serverjar,
 	serverpath,
+	players = [],
+	outputParsers = [
+		function listOut(s) {
+			var tmp = s.trim().match(/connected players\:(.*)$/i);
+			if (tmp) {
+				players = tmp[1].trim().split(' ');
+			}
+		},
+		function playerConnect(s) {
+			var tmp = s.match(/\[INFO\] ([^\s]+) .* logged in /);
+			if (tmp) {
+				if (players.indexOf(tmp[1]) === -1) {
+					players.push(tmp[1]);
+				}
+			}
+		},
+		function playerDisconnect(s) {
+			var idx, player, tmp = s.match(/\[INFO\] ([^\s]+) lost connection/);
+			if (tmp) {
+				player = tmp[1];
+				idx = players.indexOf(player);
+				if (idx !== -1) {
+					players.splice(idx, 1);
+				}
+			}
+
+		}
+	],
+	events = new (require('events').EventEmitter)(),
 	stdout = '',
 	stderr = '';
+
+// force player check every 60s
+setInterval(function () {
+	if (daemon) {
+		daemon.stdin.write('list\n');
+	}
+}, 60000);
+
+// console.log(events.on); process.exit();
+
+exports.on = events.on;
+exports.emit = events.emit;
 
 exports.setServerJar = function (filename) {
 	serverjar = filename;
@@ -18,6 +59,10 @@ exports.setServerPath = function (dirname) {
 	serverpath = dirname;
 };
 
+/**
+ * do start minecraft server
+ * @return boolean true on success, false if it was already running
+ */
 exports.start = function () {
 	if (daemon) {
 		return false;
@@ -31,20 +76,30 @@ exports.start = function () {
 	});
 
 	daemon.stdout.on('data', function (data) {
+		exports.emit('stdout', data);
+
 		data = data.toString();
-		stdout += data;
-		console.log('DAEMON stdout: ' + data.trim());
+		outputParsers.forEach(function (f) {
+			f(data);
+		});
 	});
 
 	daemon.stderr.on('data', function (data) {
+		exports.emit('stderr', data);
+
 		data = data.toString();
-		stderr += data;
-		console.log('DAEMON stderr: ' + data.trim());
+		outputParsers.forEach(function (f) {
+			f(data);
+		});
 	});
 
 	return true;
 };
 
+/**
+ * stop minecraft server
+ * @returns boolean true if successful, false if it wasnt running to begin with
+ */
 exports.stop = function () {
 	if (exports.isRunning()) {
 		daemon.stdin.write('stop\n');
@@ -53,10 +108,23 @@ exports.stop = function () {
 	return false;
 };
 
+/**
+ * @returns minecraft server process
+ */
 exports.getDaemon = function () {
 	return daemon;
 };
 
+/**
+ * @return array of connected playernames
+ */
+exports.getPlayers = function () {
+	return players;
+};
+
+/**
+ * @returns object containing server properties (as written in server.properties)
+ */
 exports.getServerProperties = function () {
 	var file = fs.readFileSync(serverpath + '/server.properties'),
 		result = {};
@@ -77,27 +145,11 @@ exports.getServerProperties = function () {
 	return result;
 };
 
+/**
+ * @return boolean if minecraft server is running
+ */
 exports.isRunning = function () {
 	return !!daemon;
-};
-
-/**
- * @param clear (boolean) whether to clear the buffer
- */
-exports.getStdout = function (clear) {
-	var r = stdout;
-	if (clear) {
-		stdout = '';
-	}
-	return r;
-};
-
-exports.getStderr = function (clear) {
-	var r = stderr;
-	if (clear) {
-		stderr = '';
-	}
-	return r;
 };
 
 exports.writeStdin = function (data) {
