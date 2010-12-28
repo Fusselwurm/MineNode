@@ -12,7 +12,9 @@ var sys = require('sys'),
 		function listOut(s) {
 			var tmp = s.trim().match(/connected players\:(.*)$/i);
 			if (tmp) {
-				players = tmp[1].trim().split(' ');
+				players = tmp[1].split(',').map(function (p) {
+					return p.trim();
+				});
 			}
 		},
 		function playerConnect(s) {
