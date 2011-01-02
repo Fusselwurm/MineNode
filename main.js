@@ -5,6 +5,7 @@ var sys = require('sys'),
 	frontend = require(__dirname + '/http.js'),
 	httpServer,
 	daemon = require(__dirname + '/daemon.js'),
+	users = require(__dirname + '/users.js'),
 	stdin = process.openStdin();
 
 (function () {
@@ -30,8 +31,10 @@ daemon.on('stderr', function (data) {
 	console.log('DAEMON stderr: ' + data.toString().trim());
 });
 
+users = users.create(config.users);
+
 frontend.setDaemon(daemon);
-frontend.setAdminkey(config.adminkey);
+frontend.setUsers(config.users);
 
 
 httpServer = http.createServer(frontend.handler);

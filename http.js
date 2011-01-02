@@ -4,126 +4,117 @@ var url = require('url'),
 	fs = require('fs'),
 	daemon,
 	adminkey,
-	clients,
+	users,
+	/**
+	 * @param status HTTP Status Code
+	 * @param contentType defaults to application/json
+	 */
+	header = function (response, status, contentType) {
+		response.writeHead(status, {
+			'Content-Type': contentType || 'application/json'
+		});
+	}
+	clients = require(__dirname + '/clients.js').clients,
+	doAuth = function (response, query, client) {
+		var u = users.getByName(query.name);
+		if (u) {
+			if (u.key === query.key) {
+				client.user = u;
+
+				header(response, 200);
+				response.write(JSON.stringify({
+					success: true,
+					msg: 'auth ok'
+				}));
+
+			} else {
+				header(response, 400);
+				response.write(JSON.stringify({
+					success: false,
+					msg: 'key mismatch'
+				}));
+			}
+		} else {
+			header(response, 400);
+			response.write(JSON.stringify({
+				success: false,
+				msg: 'invalid username'
+			}));
+		}
+
+	},
 	methods = {
-		stdin: function (response, query) {
-			if (daemon.isRunning()) {
-				daemon.writeStdin(query.message + '\n');
+		stdin: function (response, query, user) {
+			if (user.rights >= 16) {
+				if (daemon.isRunning()) {
+					daemon.writeStdin(query.message + '\n');
 
-				response.writeHead(200, {
-					'Content-Type': 'text/plain'
-				});
-
-				response.write('nok');
+					header(response, 200);
+					response.write('true');
+				} else {
+					header(response, 400);
+					response.write('false');
+				}
 			} else {
-				response.writeHead(400, {
-					'Content-Type': 'text/plain'
-				});
-				response.write('nok');
+				header(response, 400);
+				response.write(JSON.stringify({success: false, msg: 'bad client!'}));
 			}
 		},
-		start: function (response, query) {
-			daemon.start();
-			response.writeHead(200, {
-				'Content-Type': 'text/plain'
-			});
-			response.write('ok');
-		},
-		stop: function (response, query) {
-			response.writeHead(200, {
-				'Content-Type': 'text/plain'
-			});
-			if (daemon.stop()) {
-				response.write('ok');
+		start: function (response, query, user) {
+			if (user.rights > 2) {
+				daemon.start();
+				header(response, 200);
+				response.write('true');
 			} else {
-				response.write('nok');
+				header(response, 400);
 			}
 		},
-		update: function (response, query) {
+		stop: function (response, query, user) {
+			if (user.rights > 8) {
+				if (daemon.stop()) {
+					header(response, 200);
+					response.write('ok');
+				} else {
+					header(response, 500);
+					response.write('nok');
+				}
+			} else {
+				header(response, 400);
+			}
+		},
+		update: function (response, query, user) {
 			var props, c = clients.getByClientid(query.clientid);
 			if (!c) {
-				response.writeHead(400, {
-					'Content-Type': 'text/plain'
-				});
-				response.write('unknown client (did your session time out? plz refresh the page)');
+				header(response, 400);
+				response.write(JSON.stringify('unknown client (did your session time out? plz refresh the page)'));
 			}
 			props = {
-				players: daemon.getPlayers(),
 				properties: daemon.getServerProperties(),
-				status: daemon.isRunning(),
-				stdout:  c.stdout,
-				stderr: c.stderr,
-				clients: clients.map(function (c) {
-					return c.clientid;
-				})
+				status: daemon.isRunning()
 			};
+
+			if (user.rights > 2) {
+				props.players = daemon.getPlayers();
+			}
+
+			if (user.rights > 4) {
+				props.stdout =  c.stdout;
+				props.stderr = c.stderr;
+			}
+
+			if (user.rights > 8) {
+				props.clients = clients.map(function (c) {
+					return c.clientid;
+				});
+			}
 
 			c.stdout = '';
 			c.stderr = '';
 
-			response.writeHead(200, {
-				'Content-Type': 'application/json'
-			});
+			header(response, 200);
 			response.write(JSON.stringify(props));
 		}
-	},
-	/**
-	 * @brief returns random string (matching, atm, ^[0-9a-f]+$)
-	 * @param length desired string length
-	 * @return "random" string of specified length
-	 */
-	randomString = function (length) {
-		var s = '',
-			i,
-			chars = 'abcdef0123456789';
-
-		for (i = 0; i < length; i += 1) {
-			s += chars[Math.floor(Math.random() * chars.length)];
-		}
-		return s;
 	};
-
-
-clients = [];
-clients.TIMEOUT = 30000;
-// client must have its ping method called regularly.
-clients.newClient =  function () {
-	// after 30s without request, consider client dead!
-	var timer, that;
-
-	timer = 0;
-	that = {
-		stdout: '',
-		stderr: '',
-		clientid: randomString(16),
-		ping: function () {
-			if (timer) {
-				clearTimeout(timer);
-			}
-			timer = setTimeout(function () {
-				var idx = clients.indexOf(that);
-				if (idx !== -1) {
-					clients.splice(idx, 1);
-				}
-			}, clients.TIMEOUT);
-
-		}
-	};
-
-	that.ping();
-	clients.push(that);
-	return that;
-};
-clients.getByClientid = function (clientid) {
-	var result;
-	clients.some(function (c) {
-		if (c.clientid === clientid) {
-			result = c;
-			return true;
-		}
-	});
-	return result;
-};
 
 exports.setDaemon = function (o) {
 	daemon = o;
@@ -140,67 +131,92 @@ exports.setDaemon = function (o) {
 	});
 };
 
-exports.setAdminkey = function (s) {
-	adminkey = s;
-};
+
+exports.setUsers = function (o) {
+	users = o;
+}
 
 
 exports.handler = function that(request, response) {
 	if (!daemon) {
 		throw 'daemon not set';
 	}
-	if (!adminkey) {
-		throw 'adminkey not set';
+	if (!users) {
+		throw 'users not set';
 	}
 
-	var urlbits = url.parse(request.url, true);
+	var urlbits = url.parse(request.url, true),
+		username = urlbits.pathname.substr(1),
+		clientid = urlbits.query ? urlbits.query.clientid : null,
+		client = clientid ? clients.getByClientid(clientid) : null,
+		user = client ? client.user : null;
 
 	if (urlbits.pathname === '/jquery.js') {
-		response.writeHead(200, {
-			'Content-Type': 'application/x-javascript'
-		});
+		header(response, 200, 'application/x-javascript');
 		response.end(fs.readFileSync(__dirname + '/resources/jquery.js'));
 		return;
 	}
 
-	if ('/' + adminkey !== urlbits.pathname) {
-		response.writeHead(400, {
-			'Content-Type': 'text/html'
-		});
-		response.end('nö (missing or invalid key)');
+	// if no or an invalid username is given, explode
+	if (!username) {
+		header(response, 400);
+		response.end(JSON.stringify('nö (missing username)'));
+		return;
+	} else if (!users.getByName(username)) {
+		header(response, 400);
+		response.end(JSON.stringify('nö (invalid username)'));
+		return;
 	}
 
+	// if no clientid is given, return index page
+	if (!clientid) {
 
-	if (urlbits.query) {
-		if (urlbits.query.clientid) {
-			clients.forEach(function (c) {
-				if (c.clientid === urlbits.query.clientid) {
-					c.ping();
-				}
-			});
-		}
-		if (typeof methods[urlbits.query.type] === 'function') {
-			try {
-				methods[urlbits.query.type](response, urlbits.query);
-				response.end();
-			} catch (e) {
-				response.writeHead(500);
-				console.log(e);
-				response.end(e.message || e.toString());
-			}
-		} else {
-			response.writeHead(400, {
-				'Content-Type': 'text/plain'
-			});
-			response.end('wtf?');
-		}
-	} else {
+		header(response, 200, 'text/html');
 
-		response.writeHead(200, {
-			'Content-Type': 'text/html'
-		});
-
-		response.write(fs.readFileSync(__dirname + '/resources/index.html').toString().replace('%%ADMINKEY%%', adminkey).replace('%%CLIENTID%%', clients.newClient().clientid));
+		// return resources/index_[role].html
+		response.write(fs.readFileSync(__dirname + '/resources/index_' + users.getByName(username).role + '.html').toString().replace('%%USERNAME%%', username).replace('%%CLIENTID%%', clients.newClient().clientid));
 		response.end();
+		return;
 	}
+
+	// if clientid _was_ given, but doesnt belong to a known client, reject the request
+	if (!client) {
+		console.log('invalid clientid ' + urlbits.query.clientid);
+		header(response, 400, 'text/plain');
+		response.end('invalid clientid ' + urlbits.query.clientid + '\nwtf?');
+		return;
+	}
+
+	client.ping();
+
+	// if clientid is given, but user is not authed, the only legal action is an authentication request.
+	if (!user) {
+		if (urlbits.query.type === 'auth') {
+			doAuth(response, urlbits.query, client);
+		} else {
+			console.log('invalid request from a user that has not been validated ' + username);
+			header(response, 400, 'text/plain');
+			response.write('invalid request ' + urlbits.query.clientid + '\nwtf?');
+		}
+		response.end();
+		return;
+	}
+
+	// ooookay. now we have for sure an authenticated user
+	if (urlbits.query.type && (typeof methods[urlbits.query.type] === 'function')) {
+		try {
+			methods[urlbits.query.type](response, urlbits.query, user);
+			response.end();
+		} catch (e) {
+			header(response, 500);
+			console.log(e);
+			response.write(JSON.stringify('wah! an exception! and i wont tell you what it was about.'));
+		}
+		response.end();
+		return;
+	}
+
+	header(response, 400);
+	response.end('false');
+	console.log('sth is wrong here');
 };

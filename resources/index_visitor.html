@@ -1,0 +1,202 @@
+<html>
+<head>
+	<title>---</title>
+	<script src="/jquery.js"></script>
+	<style>
+		pre {
+			overflow: scroll;
+		}
+
+		h1 {
+			font-size: 1.3em;
+		}
+
+		.logcontainer {
+			max-height: 170px;
+			max-width: 80%;
+			margin: 1em;
+			font-family: monospace;
+			border: 2px solid #ddd;
+		}
+
+		.enabled {
+			background-color: #8f8;
+		}
+
+		.disabled {
+			background-color: #f88;
+		}
+
+		#container_server_status {
+			border: 3px dashed #fff;
+		}
+
+		#container_server_stderr, #container_server_stdout {
+			border: 3px dashed #fff;
+			background-color: #fd9;
+		}
+
+		#container_server_players, #container_server_webclients {
+			border: 3px dashed #fff;
+			background-color: #ff0;
+		}
+
+		#container_server_properties {
+			width: 300px;
+			background-color: #c0c0ff;
+			float: right;
+			border: 3px dashed #fff;
+		}
+
+		#server_properties td {
+			border: 2px dashed #fff;
+			padding: 0.2em;
+		}
+
+		#server_properties table {
+			margin: 1em;
+			border-spacing: 0;
+			border-collapse: collapse;
+		}
+
+		button {
+			float: right;
+		}
+
+		#authenticate {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			z-index: 5;
+			background-color: #fff;
+		}
+
+		#authenticate div {
+			margin: 40%;
+		}
+
+	</style>
+	<script>
+		/*global $*/
+		var
+			username = '%%USERNAME%%',
+			title = 'MineNode - Minecraft Server Frontend for "%s"',
+			clientid = '%%CLIENTID%%';
+
+	</script>
+</head>
+<body>
+	<div id="authenticate"><div>plz enter your password: <input type="text"/></div></div>
+	<div id="container_server_properties">
+		<h1>Properties</h1>
+		<div id="server_properties"></div>
+	</div>
+	<div id="container_server_status">
+		<h1>Status: <span id="server_status">---</span></h1>
+	</div>
+
+	<div id="container_server_players">
+		<h1>Players: <span id="server_players"></span></h1>
+	</div>
+
+	<script>
+
+	var stdin = '',
+		stderr = '',
+		stdout = '';
+
+	function get(request, cb) {
+		request.clientid = clientid;
+		$.get('/' + username, request, cb, 'json');
+	}
+
+	function work() {
+
+		var setProperties, poll;
+
+
+		setProperties = function (data) {
+			var n, s = '<table>';
+			for (n in data) {
+				if (n && data.hasOwnProperty(n)) {
+					s += '<tr><td>' + n + '<\/td><td>' + data[n] + '<\/td><\/tr>\n';
+				}
+			}
+			s += '<\/table>';
+			$('#server_properties').html(s);
+
+			if (data['level-name']) {
+				document.title = title.replace('%s', data['level-name']);
+			}
+
+		};
+
+		poll = function () {
+			get({type: 'update'}, function (data) {
+
+				if (typeof data == 'string') {
+					data = JSON.parse(data);
+				}
+
+				if (!data) {
+					throw 'aaaaaaaaaargs';
+				}
+
+				if (data.stdout) {
+					stdout += data.stdout;
+					$('#server_stdout').text(stdout).scrollTop($('#server_stdout')[0].scrollHeight);
+				}
+				if (data.stderr) {
+					stderr += data.stderr;
+					$('#server_stderr').text(stderr).scrollTop($('#server_stderr')[0].scrollHeight);
+				}
+
+				if (data.status) {
+					$('#container_server_status').addClass('enabled').removeClass('disabled');
+					$('#server_status').text('running');
+				} else {
+					$('#container_server_status').removeClass('enabled').addClass('disabled');
+					$('#server_status').text('stopped');
+				}
+
+				if (data.players) {
+					$('#server_players').text(data.players.join(', '));
+				}
+
+				if (data.properties) {
+					setProperties(data.properties);
+				}
+
+				setTimeout(poll, 2000);
+			}, 'json');
+		};
+
+
+		poll();
+
+	};
+
+
+	$(document).ready(function () {
+		$('#authenticate input').keyup(function (e) {
+
+			if (e.keyCode === 13) {
+				get({
+					type : 'auth',
+					name: username,
+					key: this.value
+				}, function (data) {
+					if (data.success) {
+						$('#authenticate').remove();
+						work();
+					}
+				});
+				this.value = '';
+			}
+		});
+	});
+	</script>
+</body>
+</html>

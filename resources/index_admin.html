@@ -63,17 +63,32 @@
 			float: right;
 		}
 
+		#authenticate {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			z-index: 5;
+			background-color: #fff;
+		}
+
+		#authenticate div {
+			margin: 40%;
+		}
+
 	</style>
 	<script>
 		/*global $*/
 		var
-			adminkey = '%%ADMINKEY%%',
+			username = '%%USERNAME%%',
 			title = 'MineNode - Minecraft Server Frontend for "%s"',
 			clientid = '%%CLIENTID%%';
 
 	</script>
 </head>
 <body>
+	<div id="authenticate"><div>plz enter your password: <input type="text"/></div></div>
 	<div id="container_server_properties">
 		<h1>Properties</h1>
 		<div id="server_properties"></div>
@@ -113,18 +128,12 @@
 		stderr = '',
 		stdout = '';
 
-	$('#server_stdin').keyup(function (e) {
-		if (e.keyCode === 13) {
-			$.get('/' + adminkey, {
-				type : 'stdin',
-				message: this.value,
-				clientid: clientid
-			});
-			this.value = '';
-		}
-	});
+	function get(request, cb) {
+		request.clientid = clientid;
+		$.get('/' + username, request, cb, 'json');
+	}
 
-	$(document).ready(function () {
+	function work() {
 
 		var setProperties, poll;
 
@@ -146,7 +155,7 @@
 		};
 
 		poll = function () {
-			$.get('/' + adminkey + '?type=update&clientid=' + clientid, function (data) {
+			get({type: 'update'}, function (data) {
 
 				if (typeof data == 'string') {
 					data = JSON.parse(data);
@@ -193,17 +202,39 @@
 		poll();
 
 		$('#server_switch_on').click(function () {
-			$.get('/' + adminkey, {
-				type: 'start',
-				clientid: clientid
-			});
+			get({type: 'start'});
 		});
 
 		$('#server_switch_off').click(function () {
-			$.get('/' + adminkey, {
-				type: 'stop',
-				clientid: clientid
-			});
+			get({type: 'stop'});
+		});
+	};
+
+	$('#server_stdin').keyup(function (e) {
+		if (e.keyCode === 13) {
+			get({type: 'stdin', message: this.value});
+			this.value = '';
+		}
+	});
+
+
+
+	$(document).ready(function () {
+		$('#authenticate input').keyup(function (e) {
+
+			if (e.keyCode === 13) {
+				get({
+					type : 'auth',
+					name: username,
+					key: this.value
+				}, function (data) {
+					if (data.success) {
+						$('#authenticate').remove();
+						work();
+					}
+				});
+				this.value = '';
+			}
 		});
 	});
 	</script>

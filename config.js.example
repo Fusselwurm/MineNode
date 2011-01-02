@@ -1,3 +1,21 @@
-exports.adminkey = 'soopersecret';
 exports.minecraft_server_jar = '/usr/local/games/minecraft/minecraft_server.jar';
 exports.httpPort = 8001;
+
+// existing roles: admin, player, visitor
+exports.users = [
+	{
+		"name" : "admin",
+		"key": "some passphrase",
+		"role": "admin"
+	},
+	{
+		"name": "playa",
+		"key": "some other passphrase"
+		"role": "player"
+	},
+	{
+		"name": "visit0r",
+		"key": "",
+		"role": "visitor"
+	}
+];
