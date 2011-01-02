@@ -104,7 +104,11 @@ var url = require('url'),
 
 			if (user.rights > 8) {
 				props.clients = clients.map(function (c) {
-					return c.clientid;
+					return {
+						clientid: c.clientid,
+						name: c.user ? c.user.name : 'UNKNOWN',
+						userAgent: c.userAgent
+					}
 				});
 			}
 
@@ -145,6 +149,7 @@ exports.handler = function that(request, response) {
 		throw 'users not set';
 	}
 
+
 	var urlbits = url.parse(request.url, true),
 		username = urlbits.pathname.substr(1),
 		clientid = urlbits.query ? urlbits.query.clientid : null,
@@ -174,7 +179,7 @@ exports.handler = function that(request, response) {
 		header(response, 200, 'text/html');
 
 		// return resources/index_[role].html
-		response.write(fs.readFileSync(__dirname + '/resources/index_' + users.getByName(username).role + '.html').toString().replace('%%USERNAME%%', username).replace('%%CLIENTID%%', clients.newClient().clientid));
+		response.write(fs.readFileSync(__dirname + '/resources/index_' + users.getByName(username).role + '.html').toString().replace('%%USERNAME%%', username).replace('%%CLIENTID%%', clients.newClient(request.headers['user-agent'] || 'unknown user agent').clientid));
 		response.end();
 		return;
 	}

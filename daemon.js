@@ -4,6 +4,7 @@
 var sys = require('sys'),
 	spawn = require('child_process').spawn,
 	fs = require('fs'),
+	// minecraft server process
 	daemon,
 	serverjar,
 	serverpath,

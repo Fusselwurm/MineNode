@@ -154,6 +154,20 @@
 
 		};
 
+		setWebclients = function (data) {
+			$('#server_webclients').html(data.map(function (c) {
+					var s = '<span title="%s - %s">%s</span>';
+					if (c.clientid === clientid) {
+						s = '<em>' + s + '<\/em>';
+					}
+
+					return s.
+						replace('%s', c.clientid).
+						replace('%s', c.userAgent).
+						replace('%s', c.name);
+				}).join(', '));
+		};
+
 		poll = function () {
 			get({type: 'update'}, function (data) {
 
@@ -183,7 +197,7 @@
 				}
 
 				if (data.clients) {
-					$('#server_webclients').html(data.clients.join(', ').replace(clientid, '<em>' + clientid + '<\/em>'));
+					setWebclients(data.clients);
 				}
 
 				if (data.players) {

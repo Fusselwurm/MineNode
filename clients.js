@@ -17,7 +17,7 @@ var clients = [],
 
 clients.TIMEOUT = 30000;
 // client must have its ping method called regularly.
-clients.newClient = function () {
+clients.newClient = function (userAgent) {
 	// after 30s without request, consider client dead!
 	var timer, that;
 
@@ -28,6 +28,7 @@ clients.newClient = function () {
 		clientid: randomString(32),
 		// may contain: 'admin', 'user', 'visitor' ... ?
 		user: null,
+		userAgent: userAgent || '',
 		ping: function () {
 			if (timer) {
 				clearTimeout(timer);
