@@ -17,11 +17,13 @@ var sys = require('sys'),
 				}
 
 				if (stopServer) {
-					console.log('requiring auto shutdown after ' + t + ' milliseconds of inactivity');
-					timer = setTimeout(function () {
-						console.log('auto shutdown after ' + t + ' milliseconds of inactivity...');
-						exports.stop();
-					}, t);
+					if (!timer) {
+						console.log('requiring auto shutdown after ' + t + ' milliseconds of inactivity');
+						timer = setTimeout(function () {
+							console.log('auto shutdown after ' + t + ' milliseconds of inactivity...');
+							exports.stop();
+						}, t);
+					}
 				} else {
 					console.log('stopping auto shutdown');
 					if (timer) {
