@@ -19,3 +19,8 @@ exports.users = [
 		"role": "visitor"
 	}
 ];
+
+// milliseconds until server stops when nobody's playing
+// defaults to 60s
+// set to -1 to disable
+exports.autoshutdown = 60000;

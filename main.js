@@ -21,6 +21,7 @@ var sys = require('sys'),
 	// chdir. thats important - else the server wont find its files again
 	process.chdir(path);
 	daemon.setServerPath(path);
+	daemon.setAutoShutDown(config.autoshutdown || 60000)
 }());
 
 daemon.on('stdout', function (data) {

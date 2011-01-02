@@ -8,13 +8,44 @@ var sys = require('sys'),
 	serverjar,
 	serverpath,
 	players = [],
+	shutdowntimer = (function () {
+		var timer = 0,
+			muh = function (stopServer) {
+				var t = muh.time;
+				if (t === -1) {
+					return;
+				}
+
+				if (stopServer) {
+					console.log('requiring auto shutdown after ' + t + ' milliseconds of inactivity');
+					timer = setTimeout(function () {
+						console.log('auto shutdown after ' + t + ' milliseconds of inactivity...');
+						exports.stop();
+					}, t);
+				} else {
+					console.log('stopping auto shutdown');
+					if (timer) {
+						clearTimeout(timer);
+						timer = 0;
+					}
+				}
+			};
+
+		muh.time = 60000; // default time: 60s
+		return muh;
+	}()),
 	outputParsers = [
 		function listOut(s) {
 			var tmp = s.trim().match(/connected players\:(.*)$/i);
 			if (tmp) {
-				players = tmp[1].split(',').map(function (p) {
-					return p.trim();
+				players = [];
+				tmp[1].split(',').forEach(function (p) {
+					p = p.trim();
+					if (p) {
+						players.push(p);
+					}
 				});
+				shutdowntimer(players.length === 0);
 			}
 		},
 		function playerConnect(s) {
@@ -22,6 +53,7 @@ var sys = require('sys'),
 			if (tmp) {
 				if (players.indexOf(tmp[1]) === -1) {
 					players.push(tmp[1]);
+					shutdowntimer(false);
 				}
 			}
 		},
@@ -32,9 +64,9 @@ var sys = require('sys'),
 				idx = players.indexOf(player);
 				if (idx !== -1) {
 					players.splice(idx, 1);
+					shutdowntimer(players.length === 0);
 				}
 			}
-
 		}
 	],
 	events = new (require('events').EventEmitter)(),
@@ -59,6 +91,13 @@ exports.setServerJar = function (filename) {
 
 exports.setServerPath = function (dirname) {
 	serverpath = dirname;
+};
+
+/**
+ * @param timeout milliseconds until server shuts down if no player is connected
+ */
+exports.setAutoShutDown = function (timeout) {
+	shutdowntimer.time = timeout;
 };
 
 /**
