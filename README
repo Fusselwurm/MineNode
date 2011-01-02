@@ -1,4 +1,4 @@
-A minecraft server admin frontend, to be accessed via HTTP and written using nodeJS.
+A minecraft server frontend, to be accessed via HTTP and written using nodeJS.
 
 It cant do much at the moment, and probably never will.
 Right now, it lets you:
@@ -7,6 +7,7 @@ Right now, it lets you:
 * view server output
 * view server properties
 * send arbitrary commands to the server
+* configure different users, using three roles: "admin", "player" and "visitor", the latter ones having less rights
 
 prerequisites:
 
@@ -20,5 +21,5 @@ setup:
 
 use:
 
-* connect using <browser of your choice> to http://[your host]:[config.httpPort]/[config.adminkey]
+* connect using <browser of your choice> to http://[your host]:[config.httpPort]/[username]
 * send commands/view output directly on console (try 'help')
