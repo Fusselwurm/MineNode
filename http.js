@@ -2,6 +2,7 @@
 
 var url = require('url'),
 	fs = require('fs'),
+	path = require('path'),
 	daemon,
 	adminkey,
 	users,
@@ -13,7 +14,42 @@ var url = require('url'),
 		response.writeHead(status, {
 			'Content-Type': contentType || 'application/json'
 		});
-	}
+	},
+	sendResource = function (response, urlbits) {
+		var
+			mime = 'text/plain',
+			filepath = __dirname + urlbits.pathname;
+
+		if (/^\/resources\/[a-z]+\.([a-z]+)$/.test(urlbits.pathname)) {
+			switch (path.extname(filepath)) {
+				case '.js':
+					mime = 'application/x-javascript';
+					break;
+				case '.html':
+					mime = 'text/html';
+					break;
+				case '.css':
+					mime = 'text/css';
+					break;
+				default:
+					mime = 'application/unknown';
+			}
+
+			path.exists(filepath, function (exists) {
+				if (exists) {
+					header(response, 200, mime);
+					response.end(fs.readFileSync(filepath));
+				} else {
+					header(response, 404, mime);
+					response.end();
+				}
+			});
+		} else {
+			header(response, 403, mime);
+			response.end();
+			console.log('bösartiger zugriff, path:' + JSON.stringify(path.substr(0, 50)));
+		}
+	},
 	clients = require(__dirname + '/clients.js').clients,
 	doAuth = function (response, query, client) {
 		var u = users.getByName(query.name);
@@ -108,7 +144,7 @@ var url = require('url'),
 						clientid: c.clientid,
 						name: c.user ? c.user.name : 'UNKNOWN',
 						userAgent: c.userAgent
-					}
+					};
 				});
 			}
 
@@ -138,7 +174,7 @@ exports.setDaemon = function (o) {
 
 exports.setUsers = function (o) {
 	users = o;
-}
+};
 
 
 exports.handler = function that(request, response) {
@@ -156,10 +192,8 @@ exports.handler = function that(request, response) {
 		client = clientid ? clients.getByClientid(clientid) : null,
 		user = client ? client.user : null;
 
-	if (urlbits.pathname === '/jquery.js') {
-		header(response, 200, 'application/x-javascript');
-		response.end(fs.readFileSync(__dirname + '/resources/jquery.js'));
-		return;
+	if (urlbits.pathname.indexOf('/resources/') === 0) {
+		return sendResource(response, urlbits);
 	}
 
 	// if no or an invalid username is given, explode

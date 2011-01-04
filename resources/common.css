@@ -1,0 +1,74 @@
+
+pre {
+	overflow: scroll;
+}
+
+h1 {
+	font-size: 1.3em;
+}
+
+.logcontainer {
+	max-height: 170px;
+	max-width: 80%;
+	margin: 1em;
+	font-family: monospace;
+	border: 2px solid #ddd;
+}
+
+.enabled {
+	background-color: #8f8;
+}
+
+.disabled {
+	background-color: #f88;
+}
+
+#container_server_status {
+	border: 3px dashed #fff;
+}
+
+#container_server_stderr, #container_server_stdout {
+	border: 3px dashed #fff;
+	background-color: #fd9;
+}
+
+#container_server_players, #container_server_webclients {
+	border: 3px dashed #fff;
+	background-color: #ff0;
+}
+
+#container_server_properties {
+	width: 300px;
+	background-color: #c0c0ff;
+	float: right;
+	border: 3px dashed #fff;
+}
+
+#server_properties td {
+	border: 2px dashed #fff;
+	padding: 0.2em;
+}
+
+#server_properties table {
+	margin: 1em;
+	border-spacing: 0;
+	border-collapse: collapse;
+}
+
+button {
+	float: right;
+}
+
+#authenticate {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 5;
+	background-color: #fff;
+}
+
+#authenticate div {
+	margin: 40%;
+}
