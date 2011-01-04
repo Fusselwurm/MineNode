@@ -41,83 +41,15 @@
 
 	<script>
 
-	var stdin = '',
-		stderr = '',
-		stdout = '';
-
-	function get(request, cb) {
-		request.clientid = clientid;
-		$.get('/' + username, request, cb, 'json');
-	}
-
-	function work() {
-
-		var setProperties, poll;
-
-
-		setProperties = function (data) {
-			var n, s = '<table>';
-			for (n in data) {
-				if (n && data.hasOwnProperty(n)) {
-					s += '<tr><td>' + n + '<\/td><td>' + data[n] + '<\/td><\/tr>\n';
-				}
-			}
-			s += '<\/table>';
-			$('#server_properties').html(s);
-
-			if (data['level-name']) {
-				document.title = title.replace('%s', data['level-name']);
-			}
-
-		};
-
-		poll = function () {
-			get({type: 'update'}, function (data) {
-
-				if (typeof data == 'string') {
-					data = JSON.parse(data);
-				}
-
-				if (!data) {
-					throw 'aaaaaaaaaargs';
-				}
-
-				if (data.stdout) {
-					stdout += data.stdout;
-					$('#server_stdout').text(stdout).scrollTop($('#server_stdout')[0].scrollHeight);
-				}
-				if (data.stderr) {
-					stderr += data.stderr;
-					$('#server_stderr').text(stderr).scrollTop($('#server_stderr')[0].scrollHeight);
-				}
-
-				if (data.status) {
-					$('#container_server_status').addClass('enabled').removeClass('disabled');
-					$('#server_status').text('running');
-				} else {
-					$('#container_server_status').removeClass('enabled').addClass('disabled');
-					$('#server_status').text('stopped');
-				}
-
-				if (data.players) {
-					$('#server_players').text(data.players.join(', '));
-				}
-
-				if (data.properties) {
-					setProperties(data.properties);
-				}
-
-				setTimeout(poll, 2000);
-			}, 'json');
-		};
-
-
-		poll();
+		activate('stdout');
+		activate('stderr');
+		activate('properties');
+		activate('status');
+		activate('players');
 
 		$('#server_switch_on').click(function () {
 			get({type: 'start'});
 		});
-	};
 
 	</script>
 </body>
