@@ -6,6 +6,7 @@ var sys = require('sys'),
 	fs = require('fs'),
 	// minecraft server process
 	daemon,
+	users,
 	serverjar,
 	serverpath,
 	players = [],
@@ -52,11 +53,20 @@ var sys = require('sys'),
 			}
 		},
 		function playerConnect(s) {
-			var tmp = s.match(/\[INFO\] ([^\s]+) .* logged in /);
-			if (tmp) {
-				if (players.indexOf(tmp[1]) === -1) {
-					players.push(tmp[1]);
+			var tmp = s.match(/\[INFO\] ([^\s]+) .* logged in /),
+				name = tmp ? tmp[1] : null;
+
+			if (name) {
+				if (players.indexOf(name) === -1) {
+					players.push(name);
 					shutdowntimer(false);
+				}
+				if (!users.getByName(name)) {
+					users.push({
+						name: name,
+						role: 'visitor',
+						key: ''
+					});
 				}
 			}
 		},
@@ -70,6 +80,16 @@ var sys = require('sys'),
 					shutdowntimer(players.length === 0);
 				}
 			}
+		},
+		function chatMessages(s) {
+			// bspw 2011-01-05 21:43:30 [INFO] <Fusselwurm> muh
+
+			// matches: date time group, user name, message
+			var parts = s.trim().match(/^([0-9\-\: ]+) \[INFO\] <([^>]+)> (.*)$/);
+			if (!parts) {
+				return;
+			}
+			exports.emit('chat', users.getByName(parts[2]), parts[3]);
 		}
 	],
 	events = new (require('events').EventEmitter)(),
@@ -94,6 +114,10 @@ exports.setServerJar = function (filename) {
 
 exports.setServerPath = function (dirname) {
 	serverpath = dirname;
+};
+
+exports.setUsers = function (u) {
+	users = u;
 };
 
 /**

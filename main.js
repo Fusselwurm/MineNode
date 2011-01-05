@@ -6,7 +6,10 @@ var sys = require('sys'),
 	httpServer,
 	daemon = require(__dirname + '/daemon.js'),
 	users = require(__dirname + '/users.js'),
+	bot = require(__dirname + '/bot.js'),
 	stdin = process.openStdin();
+
+users = users.create(config.users);
 
 (function () {
 	daemon.setServerJar(config.minecraft_server_jar);
@@ -21,7 +24,8 @@ var sys = require('sys'),
 	// chdir. thats important - else the server wont find its files again
 	process.chdir(path);
 	daemon.setServerPath(path);
-	daemon.setAutoShutDown(config.autoshutdown || 60000)
+	daemon.setAutoShutDown(config.autoshutdown || 60000);
+	daemon.setUsers(users);
 }());
 
 daemon.on('stdout', function (data) {
@@ -32,10 +36,11 @@ daemon.on('stderr', function (data) {
 	console.log('DAEMON stderr: ' + data.toString().trim());
 });
 
-users = users.create(config.users);
-
 frontend.setDaemon(daemon);
 frontend.setUsers(config.users);
+
+bot.setUsers(users);
+bot.setDaemon(daemon);
 
 
 httpServer = http.createServer(frontend.handler);
