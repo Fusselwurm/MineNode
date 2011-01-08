@@ -25,6 +25,7 @@ clients.newClient = function (userAgent) {
 	that = {
 		stdout: '',
 		stderr: '',
+		chat: [],
 		clientid: randomString(32),
 		// may contain: 'admin', 'user', 'visitor' ... ?
 		user: null,

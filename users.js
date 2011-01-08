@@ -20,6 +20,10 @@ exports.create = function (config) {
 	users.RIGHTS_PLAYER = 8;
 	users.RIGHTS_VISITOR = 2;
 
+	users.RIGHTS_VISITOR = 2;
+	users.RIGHTS_PLAYER = 8;
+	users.RIGHTS_ADMIN = 16;
+
 	users.getByName = function (name) {
 		var user;
 		users.some(function (u) {

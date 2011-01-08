@@ -48,6 +48,7 @@
 		<label for="server_stdin">input:</label>
 		<input type="text" size="40" id="server_stdin" />
 	</div>
+	<div id="container_chat"></div>
 	<script>
 
 	activate('stdout');
@@ -56,6 +57,7 @@
 	activate('status');
 	activate('players');
 	activate('clients');
+	activate('chat', $('#container_chat'));
 
 	$('#server_switch_on').click(function () {
 		get({type: 'start'});

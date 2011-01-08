@@ -49,52 +49,107 @@ function setWebclients(data) {
 
 var activeModules = [],
 	modules = {
-		stdout: (function () {
-			var stdout = '';
-			return function(data) {
-				if (data.stdout) {
-					stdout += data.stdout;
-					$('#server_stdout').text(stdout).scrollTop($('#server_stdout')[0].scrollHeight);
+		stdout: {
+			update: (function () {
+
+				var stdout = '';
+				return function(data) {
+					if (data.stdout) {
+						stdout += data.stdout;
+						$('#server_stdout').text(stdout).scrollTop($('#server_stdout')[0].scrollHeight);
+					}
+				};
+			}())
+		},
+		stderr: {
+			update: (function () {
+				var stderr = '';
+				return function (data) {
+					if (data.stderr) {
+						stderr += data.stderr;
+						$('#server_stderr').text(stderr).scrollTop($('#server_stderr')[0].scrollHeight);
+					}
+				};
+			}())
+		},
+		status: {
+			update: function (data) {
+				if (data.status) {
+					$('#container_server_status').addClass('enabled').removeClass('disabled');
+					$('#server_status').text('running');
+				} else {
+					$('#container_server_status').removeClass('enabled').addClass('disabled');
+					$('#server_status').text('stopped');
+				}
+			}
+		},
+		clients: {
+			update: function (data) {
+				if (data.clients) {
+					setWebclients(data.clients);
+				}
+			}
+		},
+		players: {
+			update: function (data) {
+				if (data.players) {
+					$('#server_players').text(data.players.join(', '));
+				}
+			}
+		},
+		properties: {
+			update: function (data) {
+				if (data.properties) {
+					setProperties(data.properties);
+				}
+			}
+		},
+		chat: (function () {
+			var cnt,
+			incomingMessage = function (sender, msg, resource) {
+				$('#chat_output').append('<span class="chat ' + resource + '">&lt;' + sender + '&gt; ' + msg + '</span>\n');
+				$('#chat_output').scrollTop($('#chat_output')[0].scrollHeight);
+
+			};
+			return {
+				init: function (container) {
+					cnt = container;
+					$(cnt).html('<h1>Chat</h1>' +
+						'<pre id="chat_output" class="logcontainer"></pre>' +
+						'<input id="chat_input" type="text" size="80"/></div><div id="chat_send_confirmation">sendstatus</div>'
+					);
+
+					$('#chat_input').keyup(function (e) {
+						if (e.keyCode === 13) {
+							$('#chat_send_confirmation').addClass('nok').removeClass('ok').show();
+							get({
+								type : 'chat',
+								msg: this.value
+							}, function (data) {
+								if (data.success) {
+									$('#chat_send_confirmation').addClass('ok').removeClass('nok').fadeOut(1000);
+								}
+							});
+							this.value = '';
+						}
+					});
+				},
+				update: function (data) {
+					if (data.chat) {
+						data.chat.forEach(function (l) {
+							incomingMessage(l.username, l.msg, l.resource);
+						});
+					}
 				}
 			};
-		}()),
-		stderr: (function () {
-			var stderr = '';
-			return function (data) {
-				if (data.stderr) {
-					stderr += data.stderr;
-					$('#server_stderr').text(stderr).scrollTop($('#server_stderr')[0].scrollHeight);
-				}
-			};
-		}()),
-		status: function (data) {
-			if (data.status) {
-				$('#container_server_status').addClass('enabled').removeClass('disabled');
-				$('#server_status').text('running');
-			} else {
-				$('#container_server_status').removeClass('enabled').addClass('disabled');
-				$('#server_status').text('stopped');
-			}
-		},
-		clients: function (data) {
-			if (data.clients) {
-				setWebclients(data.clients);
-			}
-		},
-		players: function (data) {
-			if (data.players) {
-				$('#server_players').text(data.players.join(', '));
-			}
-		},
-		properties: function (data) {
-			if (data.properties) {
-				setProperties(data.properties);
-			}
-		}
+		}())
 	};
 
-function activate(name) {
+function activate(name, e) {
 	if (modules[name]) {
+		if (modules[name].init) {
+			modules[name].init(e);
+		}
 		activeModules.push(modules[name]);
 	} else {
 		throw 'unknown module ' + name;
@@ -113,7 +168,7 @@ function poll() {
 		}
 
 		activeModules.forEach(function (m) {
-			m(data);
+			m.update(data);
 		});
 
 		setTimeout(poll, 2000);

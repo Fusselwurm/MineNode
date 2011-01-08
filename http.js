@@ -96,8 +96,38 @@ var url = require('url'),
 				response.write(JSON.stringify({success: false, msg: 'bad client!'}));
 			}
 		},
+		chat: function (response, query, user) {
+			var c = clients.getByClientid(query.clientid);
+
+			if (!c) {
+				throw 'wtf?';
+			}
+
+			if (!query.msg) {
+				header(response, 400);
+				response.write(JSON.stringify({success: false}));
+			}
+
+			if (user.rights >= users.RIGHTS_VISITOR) {
+				if (daemon.isRunning()) {
+					daemon.writeStdin('say <' + user.name + '/webclient> ' + query.msg + '\n');
+				}
+
+				clients.forEach(function (c) {
+					c.chat.push({username: user.name, msg: query.msg, resource: 'webclient'});
+				});
+
+				header(response, 200);
+				response.write(JSON.stringify({success: true}));
+			} else {
+				header(response, 403);
+				response.write(JSON.stringify({success: false, r: user.rights}));
+			}
+
+
+		},
 		start: function (response, query, user) {
-			if (user.rights > 2) {
+			if (user.rights > users.RIGHTS_VISITOR) {
 				daemon.start();
 				header(response, 200);
 				response.write('true');
@@ -106,7 +136,7 @@ var url = require('url'),
 			}
 		},
 		stop: function (response, query, user) {
-			if (user.rights > 8) {
+			if (user.rights > users.RIGHTS_PLAYER) {
 				if (daemon.stop()) {
 					header(response, 200);
 					response.write('ok');
@@ -129,7 +159,7 @@ var url = require('url'),
 				status: daemon.isRunning()
 			};
 
-			if (user.rights > 2) {
+			if (user.rights > users.RIGHTS_VISITOR) {
 				props.players = daemon.getPlayers();
 			}
 
@@ -138,7 +168,7 @@ var url = require('url'),
 				props.stderr = c.stderr;
 			}
 
-			if (user.rights > 8) {
+			if (user.rights > users.RIGHTS_PLAYER) {
 				props.clients = clients.map(function (c) {
 					return {
 						clientid: c.clientid,
@@ -148,11 +178,17 @@ var url = require('url'),
 				});
 			}
 
-			c.stdout = '';
-			c.stderr = '';
+			if (user.rights >= users.RIGHTS_VISITOR) {
+				props.chat = c.chat;
+			}
 
 			header(response, 200);
 			response.write(JSON.stringify(props));
+
+			c.stdout = '';
+			c.stderr = '';
+			c.chat = [];
+
 		}
 	};
 
@@ -167,6 +203,12 @@ exports.setDaemon = function (o) {
 	daemon.on('stderr', function (data) {
 		clients.forEach(function (c) {
 			c.stderr += data.toString();
+		});
+	});
+
+	daemon.on('chat', function (user, msg) {
+		clients.forEach(function (c) {
+			c.chat.push({username: user.name, msg: msg, resource: 'player'});
 		});
 	});
 };

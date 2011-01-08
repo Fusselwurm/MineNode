@@ -39,6 +39,8 @@
 	<div><pre id="server_stderr" class="logcontainer"></pre></div>
 	</div>
 
+	<div id="container_chat"></div>
+
 	<script>
 
 		activate('stdout');
@@ -46,6 +48,7 @@
 		activate('properties');
 		activate('status');
 		activate('players');
+		activate('chat', $('#container_chat'));
 
 		$('#server_switch_on').click(function () {
 			get({type: 'start'});

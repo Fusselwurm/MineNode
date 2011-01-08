@@ -7,6 +7,14 @@ h1 {
 	font-size: 1.3em;
 }
 
+.chat.webclient {
+	font-style: italic;
+}
+
+.chat .player {
+	font-style: normal;
+}
+
 .logcontainer {
 	max-height: 170px;
 	max-width: 80%;
@@ -15,17 +23,29 @@ h1 {
 	border: 2px solid #ddd;
 }
 
-.enabled {
+.enabled, .ok {
 	background-color: #8f8;
 }
 
-.disabled {
+.disabled, .nok {
 	background-color: #f88;
 }
 
 #container_server_status {
 	border: 3px dashed #fff;
 }
+
+#container_chat {
+	border: 3px dashed #fff;
+	background-color: #dcb;
+}
+
+#chat_send_confirmation {
+	width: 100px;
+	float: right;
+}
+
+
 
 #container_server_stderr, #container_server_stdout {
 	border: 3px dashed #fff;
