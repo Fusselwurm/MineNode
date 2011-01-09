@@ -1,7 +1,19 @@
+/**
+* path to your local minecraft server file.
+*/
 exports.minecraft_server_jar = '/usr/local/games/minecraft/minecraft_server.jar';
+
+/**
+* which port to listen on
+*/
 exports.httpPort = 8001;
 
 // existing roles: admin, player, visitor
+/**
+* allowed users.
+* three different roles exist: admin, player, visitor
+* warning: any player who is connected in-game is automatically authenticated as the respective user!
+*/
 exports.users = [
 	{
 		"name" : "admin",
@@ -20,7 +32,11 @@ exports.users = [
 	}
 ];
 
-// milliseconds until server stops when nobody's playing
-// defaults to 60s
-// set to -1 to disable
+/**
+* let's save resources, shall we?
+* milliseconds until minecraft server stops when no players are connected.
+*
+* defaults to 60s
+* set to -1 to disable
+*/
 exports.autoshutdown = 60000;
