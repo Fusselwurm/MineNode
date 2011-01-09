@@ -6,8 +6,9 @@ Right now, it lets you:
 * start and stop the minecraft server
 * view server output
 * view server properties
-* send arbitrary commands to the server
+* send arbitrary commands to the server - also from in-game (prefix "!")
 * configure different users, using three roles: "admin", "player" and "visitor", the latter ones having less rights
+* chat between web-frontend and players
 
 prerequisites:
 
