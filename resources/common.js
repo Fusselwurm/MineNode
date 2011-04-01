@@ -159,7 +159,7 @@ function activate(name, e) {
 function poll() {
 	get({type: 'update'}, function (data) {
 
-		if (typeof data == 'string') {
+		if (typeof data === 'string') {
 			data = JSON.parse(data);
 		}
 
@@ -172,7 +172,7 @@ function poll() {
 		});
 
 		setTimeout(poll, 2000);
-	}, 'json');
+	});
 }
 
 function get(request, cb) {

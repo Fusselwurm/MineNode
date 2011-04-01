@@ -23,7 +23,6 @@ var daemon,
 	],
 	chatHandler = function (user, message) {
 		var parts = message.match(/^\!([a-z\-]+)( .*)?$/);
-		console.log(parts);
 		if (!parts) {
 			return;
 		}

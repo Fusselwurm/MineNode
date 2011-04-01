@@ -40,9 +40,11 @@ var sys = require('sys'),
 	}()),
 	outputParsers = [
 		function listOut(s) {
-			var tmp = s.trim().match(/connected players\:(.*)$/i);
+			var tmp = s.trim().match(/connected players:(.*)$/i);
 			if (tmp) {
-				players = [];
+				while (players.length) {
+					players.pop();
+				}
 				tmp[1].split(',').forEach(function (p) {
 					p = p.trim();
 					if (p) {
@@ -85,11 +87,17 @@ var sys = require('sys'),
 			// bspw 2011-01-05 21:43:30 [INFO] <Fusselwurm> muh
 
 			// matches: date time group, user name, message
-			var parts = s.trim().match(/^([0-9\-\: ]+) \[INFO\] <([^>]+)> (.*)$/);
+			var u,
+				parts = s.trim().match(/^([0-9\-: ]+) \[INFO\] <([^>]+)> (.*)$/);
 			if (!parts) {
 				return;
 			}
-			exports.emit('chat', users.getByName(parts[2]), parts[3]);
+			u = users.getByName(parts[2]);
+			if (u) {
+				exports.emit('chat', u, parts[3]);
+			} else {
+				console.log('wtf? couldnt find user ' + parts[2] + ' in users array');
+			}
 		}
 	],
 	events = new (require('events').EventEmitter)(),
@@ -198,7 +206,7 @@ exports.getServerProperties = function () {
 		result = {};
 
 	if (!file) {
-		throw 'couldnt find propiertes (correct server path "' + serverpath + '"?)';
+		throw 'couldnt find properties (correct server path "' + serverpath + '"?)';
 	}
 
 	file.toString().split('\n').forEach(function (l) {

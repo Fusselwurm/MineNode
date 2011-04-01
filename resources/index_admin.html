@@ -1,9 +1,9 @@
 <html>
 <head>
 	<title>---</title>
-	<script src="resources/jquery.js"></script>
-	<link rel="stylesheet" type="text/css" href="resources/common.css"/>
-	<script>
+	<script type="text/javascript" src="/resources/jquery.js"></script>
+	<link rel="stylesheet" type="text/css" href="/resources/common.css"/>
+	<script type="text/javascript">
 		/*global $*/
 		var
 			username = '%%USERNAME%%',
@@ -11,10 +11,10 @@
 			clientid = '%%CLIENTID%%';
 
 	</script>
-	<script src="resources/common.js"></script>
+	<script type="text/javascript" src="/resources/common.js"></script>
 </head>
 <body>
-	<div id="authenticate"><div>plz enter your password: <input type="text"/></div></div>
+	<div id="authenticate"><div><label for="auth">plz enter your password:</label> <input id="auth" type="text"/></div></div>
 	<div id="container_server_properties">
 		<h1>Properties</h1>
 		<div id="server_properties"></div>
@@ -49,7 +49,7 @@
 		<input type="text" size="40" id="server_stdin" />
 	</div>
 	<div id="container_chat"></div>
-	<script>
+	<script type="text/javascript">
 
 	activate('stdout');
 	activate('stderr');

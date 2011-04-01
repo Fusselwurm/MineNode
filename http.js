@@ -208,7 +208,7 @@ exports.setDaemon = function (o) {
 
 	daemon.on('chat', function (user, msg) {
 		clients.forEach(function (c) {
-			c.chat.push({username: user.name, msg: msg, resource: 'player'});
+			c.chat.push({username: user ? user.name : 'UNKNOWN USER', msg: msg, resource: 'player'});
 		});
 	});
 };
