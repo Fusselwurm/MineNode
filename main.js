@@ -3,37 +3,56 @@ var sys = require('sys'),
 	http = require('http'),
 	config = require(__dirname + '/config.js'),
 	frontend = require(__dirname + '/http.js'),
+	path = require('path'),
 	httpServer,
 	daemon = require(__dirname + '/daemon.js'),
 	users = require(__dirname + '/users.js'),
 	bot = require(__dirname + '/bot.js'),
+	log = require(__dirname + '/log.js'),
+	logger = log.getLogger('main'),
 	stdin = process.openStdin();
+
+log.setOutfile(__dirname + '/log.txt');
 
 users = users.create(config.users);
 
-(function () {
-	daemon.setServerJar(config.minecraft_server_jar);
+try {
 
-	var path = config.minecraft_server_path;
-	if (!path) {
-		path = config.minecraft_server_jar.split('/');
-		path.pop();
-		path = path.join('/');
-	}
+	(function () {
+		daemon.setServerJar(config.minecraft_server_jar);
 
-	// chdir. thats important - else the server wont find its files again
-	process.chdir(path);
-	daemon.setServerPath(path);
-	daemon.setAutoShutDown(config.autoshutdown || 60000);
-	daemon.setUsers(users);
-}());
+		var mcServerJarPath = config.minecraft_server_path;
+		if (!mcServerJarPath) {
+			mcServerJarPath = path.dirname(config.minecraft_server_jar);
+		}
+
+		// chdir. thats important - else the server wont find its files again
+		if (!mcServerJarPath) {
+			logger.fatal('no server file path given!');
+			process.exit();
+		}
+		if (!path.existsSync(mcServerJarPath)) {
+			logger.fatal('cannot find dir '  + mcServerJarPath);
+			process.exit();
+		}
+		process.chdir(mcServerJarPath);
+		daemon.setServerPath(mcServerJarPath);
+		daemon.setAutoShutDown(config.autoshutdown || 60000);
+		daemon.setUsers(users);
+	}());
+
+} catch (e) {
+	logger.fatal('couldnt initialize daemon module: ' + e);
+	process.exit();
+}
+
 
 daemon.on('stdout', function (data) {
-	console.log('DAEMON stdout: ' + data.toString().trim());
+	logger.debug('DAEMON stdout: ' + data.toString().trim());
 });
 
 daemon.on('stderr', function (data) {
-	console.log('DAEMON stderr: ' + data.toString().trim());
+	logger.debug('DAEMON stderr: ' + data.toString().trim());
 });
 
 frontend.setDaemon(daemon);
@@ -46,10 +65,10 @@ bot.setDaemon(daemon);
 httpServer = http.createServer(frontend.handler);
 httpServer.listen(config.httpPort);
 
-console.log('http server should be running...');
+logger.info('http server should be running...');
 
 stdin.on('data', function (chunk) {
-	// 	console.log('GOT STDIN: ' + chunk);
+	// 	logger.debug('GOT STDIN: ' + chunk);
 	var input = chunk.toString().match(/^daemon (.*)/),
 		 cmd = input ? input[1].trim() : false;
 
@@ -60,7 +79,7 @@ stdin.on('data', function (chunk) {
 			if (daemon.isRunning()) {
 				daemon.writeStdin(cmd + '\n');
 			} else {
-				console.log('server not running, wont write ' + chunk);
+				logger.error('server not running, wont write ' + chunk);
 			}
 		}
 	} else {
@@ -69,7 +88,7 @@ stdin.on('data', function (chunk) {
 		case 'exit':
 			if (daemon.isRunning()) {
 				daemon.stop();
-				console.log('sending stop to daemon');
+				logger.info('sending stop to daemon');
 			}
 			process.exit('exiting');
 			break;
@@ -77,29 +96,29 @@ stdin.on('data', function (chunk) {
 			if (!daemon.isRunning()) {
 				daemon.start();
 			} else {
-				console.log('daemon already running');
+				logger.warn('daemon already running');
 			}
 			break;
 		case 'stop':
 			if (daemon.isRunning()) {
 				daemon.stop();
 			} else {
-				console.log('daemon already stopped');
+				logger.warn('daemon already stopped');
 			}
 			break;
 		case 'help':
-			console.log('available commands:\n' +
+			logger.info('available commands:\n' +
 				'\tstart - start minecraft\n' +
 				'\tstop - stop minecraft\n' +
 				'\texit - kill this console (along with the minecraft server)\n' +
 				'\tdaemon COMMAND - send COMMAND to running minecraft server');
 			break;
 		default:
-			console.log('I don\'t understand you. type "help" for help');
+			logger.warn('I don\'t understand you. type "help" for help');
 		}
 	}
 });
 
-console.log('listening to stdin...');
+logger.info('listening to stdin...');
 
-console.log('world name is: ' + daemon.getServerProperties()['level-name']);
+logger.info('world name is: ' + daemon.getServerProperties()['level-name']);

@@ -4,6 +4,7 @@
 var sys = require('sys'),
 	spawn = require('child_process').spawn,
 	fs = require('fs'),
+	path = require('path'),
 	// minecraft server process
 	daemon,
 	users,
@@ -117,10 +118,17 @@ exports.on = events.on;
 exports.emit = events.emit;
 
 exports.setServerJar = function (filename) {
+	if (!path.existsSync(filename)) {
+		throw 'could not find jar ' + filename;
+	}
 	serverjar = filename;
 };
 
 exports.setServerPath = function (dirname) {
+	if (!path.existsSync(dirname + '/server.properties')) {
+		throw 'could not find server.properties in server path ' + dirname;
+	}
+
 	serverpath = dirname;
 };
 
